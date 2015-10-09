@@ -124,16 +124,11 @@ The first step is to randomly initialise the position and velocity vectors of al
 
 \subsection{Related Work}
 
-A wide variety of Evolutionary Computing (EC) approaches has been applied to the problem of Web service composition, as evidenced by literature surveys of the field \cite{wang2012survey,pejman2012web}. One of the earliest works in this area \cite{canfora2005approach} applies genetic algorithms to optimise the overall Quality of Service (QoS) of a composition. The composition process in this work is \textit{semi-automated}, meaning that a workflow of abstract services has already been provided. In semi-automated compositions, the objective is to select a set of concrete services that fulfil the required functionality of their abstract counterparts, ensuring that the selected set results in a composition with the best possible quality. Even this approach takes QoS into account, it is not capable of performing \textit{fully automated} composition, which is when the composition workflow is automatically deduced at the same time that the services to include in the composition are identified.
-
-* A semi-automated PSO approach to Web service composition (\cite{zhao2012improved})
+A wide variety of Evolutionary Computing (EC) approaches has been applied to the problem of Web service composition, as evidenced by literature surveys of the field \cite{wang2012survey,pejman2012web}. One of the earliest works in this area \cite{canfora2005approach} applies genetic algorithms to optimise the overall Quality of Service (QoS) of a composition. The composition process in this work is \textit{semi-automated}, meaning that a workflow of abstract services has already been provided. In semi-automated compositions, the objective is to select a set of concrete services that fulfil the required functionality of their abstract counterparts, ensuring that the selected set results in a composition with the best possible quality. Even though this approach takes QoS into account, it is not capable of performing \textit{fully automated} composition, which is when the composition workflow is automatically deduced at the same time that the services to include in the composition are identified. Several works employ particle swarm optimisation (PSO) to solving the problem of service composition \cite{wang2010improved,amiri2012effective,ludwig2012applying,zhao2012improved}, but similarly to genetic algorithm they focus exclusively on semi-automated composition.
 
 Another approach \cite{rodriguez2010composition} employs Genetic Programming (GP) to perform fully automated Web service composition, representing solutions as a trees with candidate services as the leaf nodes and composition constructs as the inner nodes. A context-free grammar is used to generate new individuals at the beginning of the evolutionary process, as well as ensuring structural correctness during the crossover and mutation operations. Despite its favourable experimental results, this approach has the shortcoming of neglecting the Quality of Service of compositions, instead optimising candidates according to workflow topology measures such as the length of the longest path in the composition and the number of atomic services included.
 
-* QoS-aware Web GP approach (use Yang's \cite{yu2013adaptive})
-
-* GraphEvol approach \cite{da2015graphevol}
-
+Finally, some approaches both create the composition workflow and optimise the quality of the overall composition \cite{yu2013adaptive,da2015graphevol}. These works accomplish this by relying on variable-size solution representations (trees or directed acyclic graphs) and by measuring the quality of candidate compositions through the fitness function. In \cite{yu2013adaptive}, the fitness function is responsible for penalising solutions that are not \textit{functionally correct}, i.e. solutions that contain services whose inputs have not been entirely fulfilled; in \cite{da2015graphevol}, candidate initialisation and genetic operators are restricted to only produce functionally correct solutions. While these approaches do consider both workflow creation and quality improvement simultaneously, they do not consider the idea of optimising solutions indirectly, and instead perform operations to the solution workflows directly. 
 
 \section{PSO-Based Composition Approach}\label{pso_approach}
 The aim of the PSO-based composition approach proposed in this paper is to optimise the queue of services used by a graph-building algorithm, which in turn determines the structure of the resulting composition. The rationale behind the creation of this method is that the indirect optimisation of the service queue allows for a simpler optimisation process than modifying composition solutions directly, while at the same time reducing the risk of creating an overly constrained search space. As Algorithm \ref{novelSteps} shows, this approach follows the usual PSO steps, though with some particularities. Firstly, the size of particles is determined based on the number of candidate services being considered for the composition, with each candidate service being mapped to an index of the particle's position vector (step 1). Secondly, solutions must be built using a graph-building algorithm before their fitness can be calculated; a queue of services is generated from the particle's position vector (step 3) and used as the input for the algorithm (step 4), which decodes a corresponding solution graph from it. Finally, the particle's fitness can be calculated from this corresponding solution graph (step 5). Further discussion on each of these highlighted steps is carried out in the subsections below.
@@ -287,6 +282,73 @@ normalise(value) =
 \end{cases}
 \end{equation}
 
+\section{Layered PSO-based Composition Approach}
+
+A variation to the PSO-based approach proposed in the previous section, which considers the use of service layers, was also developed. As shown in Algorithm \ref{novelLayeredSteps}, this approach follows the same steps used in the non-layered method, with three fundamental differences: firstly, the mapping of candidates to an index in the particle's position vector includes the division of the services that can potentially be included into a composition for the given task into layers; secondly, the the decoding and evaluation of the solution represented by a particle are performed in a single step by using a new algorithm that does not require the creation of a graph; finally, a graph representing the global best solution is created after the optimisation process has finished running. Each of these steps is explained in the subsections below.
+
+\begin{algorithm}[h]
+ \setlength\hsize{0.9\linewidth}
+ \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+ \let\oldnl\nl% Store \nl in \oldnl
+\newcommand{\nonl}{\renewcommand{\nl}{\let\nl\oldnl}}
+ \LinesNumbered
+ 	\textcolor{blue}{\textbf{1.} Identify layers and map each candidate service to an index in the particle's position vector.}\\
+	\textbf{2.} Randomly initialise each particle in the swarm.\\
+	\nonl \While {max. iterations not met}{
+		\ForAll{particles in the swarm}{
+		    \textcolor{blue}{\textbf{3.} Decode and calculate quality of corresponding solution layer by layer.}\\
+			\eIf{fitness value better than pBest}{
+				\textbf{4a.} Assign current fitness as new pBest.\\
+			}{
+				\textbf{4b.} Keep previous pBest.\\
+			}		
+		}
+		\textbf{5.} Assign best particle's pBest value to gBest, if better than gBest.\\
+		\textbf{6.} Calculate the velocity of each particle according to the equation:\\
+		\Indp $v_{id} = v_{id} + c_1 * rand() * (p_{id} - x_{id}) + c_2 * rand() * (p_{gd} - x_{id})$\\
+		\Indm \textbf{7.} Update the position of each particle according to the equation:\\
+		\Indp $x_{id} = x_{id} + v_{id}$\\
+		\Indm \textcolor{blue}{\textbf{8.} Create final solution graph based using gBest's weights.}\\
+	}
+	
+ \caption{Steps of the layered PSO-based Web service composition technique.}
+\label{novelLayeredSteps}
+\end{algorithm}
+
+\subsection{Layer Identification and Particle Mapping (Step 1)}
+
+The unique feature of the PSO approach proposed in this section is that it identifies the \textit{composition layer} to which a service belongs. The layers are determined during the discovery process that identifies the services that could be possibly used in the composition, which means that Algorithm \ref{discovery} is revised to keep track of composition layers, as shown in the extended Algorithm \ref{layeredDiscovery}. Each time a new set $S_{found}$ of services is discovered, it is classified as a new composition layer. The implication of this classification is that the inputs of a service in a given layer can be completely satisfied by using the services in previously discovered layers, which later facilitates the solution decoding and fitness calculation process.
+
+\begin{algorithm}
+\setlength\hsize{0.9\linewidth}
+ \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+ \LinesNumbered
+ \SetNlSty{}{}{:}
+ \Input{$I$, $O$, $R$}
+ \Output{a list of services $S_{list}$}
+ $C_{search} \leftarrow I$\;
+ $S_{list} \leftarrow \{\}$\;
+ $S_{found} \leftarrow DiscoverService()$\;
+ \While{$|S_{found}| > 0$}{
+  $S_{list} \leftarrow S_{list} \cup S_{found}$\;
+  $C_{search} \leftarrow C_{search} \cup C_{output}$ of $S_{found}$\;
+  $S_{found} \leftarrow DiscoverService()$\;
+  }
+  \eIf{$C_{search} \supseteq O$}{
+   \Return $S_{list}$\;
+   }{
+   Report no solution\;
+ }
+\caption{Discovering relevant services for compositio and tracking composition layers.}
+\label{layeredDiscovery}
+\end{algorithm}
+
+Just as before, services are mapped to particle indices once the discovery process has taken place. This time, however, the mapping is organised so that 
+
+\subsection{Solution Decoding and Fitness Calculation (Step 3)}
+
+\subsection{Construction of Final Graph (Step 8)}
+
 \section{Experiment Design}\label{experiment_design}
 
 Experiments were conducted to evaluate the performance of the PSO-based indirect composition approach in comparison to a graph-based direct composition approach \cite{da2015graphevol}, according to three criteria. The first criterion is execution time, with the hypothesis that the graph-based approach will take less time to execute than the PSO-based approach; the second criterion is best solution fitness, with the hypothesis that the solutions provided by the PSO-based approach will match or surpass the quality of those produced by the graph-based approach; the third criterion is search space coverage, with the hypothesis that the PSO-based approach will consider a greater variety of solutions during the search process than the graph-based approach. If these hypotheses are shown to be true, the implication is that the PSO-based is a suitable Web service composition alternative when prioritising the exploration of the search space.
@@ -314,7 +376,7 @@ Tournament size        & 2              &                     &                \
 
 \section{Results}\label{results}
 
-Results showing the execution time and solution fitness of the graph-based and the PSO-based approaches are displayed in Table \ref{tab:results}, where the first column indicates the dataset used, the second and third columns contain the mean execution time and mean fitness (respectively) of the PSO-based approach, and the fourth and fifth columns contain the time and fitness of the graph-based approach. All values are shown in 2dp, and means are accompanied by the standard deviation. A Wilcoxon signed-rank test at .95 confidence interval was conducted to ascertain whether the differences between the results for the two approaches are statistically significant, and the symbols $\uparrow$ and $\downarrow$ are used to indicate significantly larger and significantly smaller values, respectively. 
+Results showing the execution time and solution fitness of the graph-based and the PSO-based approaches are displayed in Table \ref{tab:results}, where the first column indicates the dataset used, the second and third columns contain the mean execution time and mean fitness (respectively) of the PSO-based approach, and the fourth and fifth columns contain the time and fitness of the graph-based approach. All values are shown in 2dp, and means are accompanied by the standard deviation. A Wilcoxon signed-rank test at .95 confidence interval was conducted to ascertain whether the differences between the results for the two approaches are statistically significant, and the symbols $\uparrow$ and $\downarrow$ are used to indicate significantly larger and significantly smaller values, respectively.
 
 \begin{table}[h]
 \centering
