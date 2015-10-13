@@ -339,7 +339,7 @@ The unique feature of the PSO approach proposed in this section is that it ident
    }{
    Report no solution\;
  }
-\caption{Discovering relevant services for compositio and tracking composition layers.}
+\caption{Discovering relevant services for composition and tracking composition layers.}
 \label{layeredDiscovery}
 \end{algorithm}
 
@@ -347,7 +347,105 @@ Just as before, services are mapped to particle indices once the discovery proce
 
 \subsection{Solution Decoding and Fitness Calculation (Step 3)}
 
+\begin{algorithm}
+\setlength\hsize{0.9\linewidth}
+ \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+ \SetKwFunction{filterByLayer}{filterByLayer}\SetKwFunction{mergeLayers}{mergeLayers}\SetKwFunction{findHighestTime}{findHighestTime}
+ \SetKwFunction{eNull}{null}\SetKwFunction{getInputsSatisfied}{getInputsSatisfied}\SetKwFunction{calculateFitness}{calculateFitness}
+ \LinesNumbered
+ \SetNlSty{}{}{:}
+ \Input{$end$, sorted layers $L$}
+ \Output{fitness $f$}
+ $solution \leftarrow \{\}$\;
+ $cost \leftarrow 0$\;
+ $availability \leftarrow 1$\;
+ $reliability \leftarrow 1$\;
+ $nextToSatisfy \leftarrow \{\}$\;
+ \ForAll{$inputs$ of $end$}{
+    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, end.time, |L|)\}$\;
+ }
+ $i \leftarrow |L|$\;
+ \For{$i=|L|$ to $i=1$}{
+    $toSatisfy \leftarrow \filterByLayer(nextToSatisfy,i)$\;
+    $nextToSatisfy \leftarrow nextToSatisfy - toSatisfy$\;
+    $mergedL \leftarrow \mergeLayers(L,i)$\;
+    \While{$|toSatisfy| > 0$}{
+	$nextS \leftarrow mergedL.next()$\;
+	\eIf{$nextS = \eNull$}{
+	    $nextToSatisfy \leftarrow nextToSatisfy \cup toSatisfy$\;
+	    $toSatisfy \leftarrow \{\}$\;
+	}{
+	    $nLayer \leftarrow nextS.layer$\;
+	    $satisfied \leftarrow \getInputsSatisfied(toSatisfy,nextS)$\;
+	    \If{$|satisfied| > 0$}{
+		$solution \leftarrow solution \cup \{nextS\}$\;
+		$cost \leftarrow cost + nextS.QoS.time$\;
+		$availability \leftarrow availability \times nextS.QoS.availability$\;
+		$reliability \leftarrow reliability \times nextS.QoS.reliability$\;
+	    }
+	    $time \leftarrow nextS.QoS.time$\;
+	    $toSatisfy \leftarrow toSatisfy - satisfied$\;
+	    $highestTime \leftarrow \findHighestTime(satisfied)$\;
+	    \ForAll{$inputs$ of $nextS$}{
+		$nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, time + highestTime, nLayer)\}$\;
+	    }
+	}
+    }
+ }
+ $time \leftarrow \findHighestTime(nextToSatisfy)$\;
+ $f \leftarrow \calculateFitness(cost,time,availability,reliability)$\;
+ \Return $f$\;
+\caption{Algorithm for decoding solutions and calculating their fitness.}
+\label{solutionDecoding}
+\end{algorithm}
+
 \subsection{Construction of Final Graph (Step 8)}
+
+\begin{algorithm}
+\setlength\hsize{0.9\linewidth}
+ \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
+ \SetKwFunction{filterByLayer}{filterByLayer}\SetKwFunction{mergeLayers}{mergeLayers}
+ \SetKwFunction{eNull}{null}\SetKwFunction{getInputsSatisfied}{getInputsSatisfied}\SetKwFunction{createEdges}{createEdges}
+ \LinesNumbered
+ \SetNlSty{}{}{:}
+ \Input{$start$, $end$, sorted layers $L$, $weights$}
+ \Output{final graph $G$}
+ $G.nodes \leftarrow \{end\}$\;
+ $G.edges \leftarrow \{\}$\;
+ $nextToSatisfy \leftarrow \{\}$\;
+ \ForAll{$inputs$ of $end$}{
+    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, end, |L|)\}$\;
+ }
+ $i \leftarrow |L|$\;
+ \For{$i=|L|$ to $i=1$}{
+    $toSatisfy \leftarrow \filterByLayer(nextToSatisfy,i)$\;
+    $nextToSatisfy \leftarrow nextToSatisfy - toSatisfy$\;
+    $mergedL \leftarrow \mergeLayers(L,i)$\;
+    \While{$|toSatisfy| > 0$}{
+	$nextS \leftarrow mergedL.next()$\;
+	\eIf{$nextS = \eNull$}{
+	    $nextToSatisfy \leftarrow nextToSatisfy \cup toSatisfy$\;
+	    $toSatisfy \leftarrow \{\}$\;
+	}{
+	    $nLayer \leftarrow nextS.layer$\;
+	    $satisfied \leftarrow \getInputsSatisfied(toSatisfy,nextS)$\;
+	    \If{$|satisfied| > 0$}{
+		$G.nodes \leftarrow G.nodes \cup \{nextS\}$\;
+		$G.edges \leftarrow G.edges \cup \createEdges(nextS, satisfied)$\;
+		$toSatisfy \leftarrow toSatisfy - satisfied$\;
+		\ForAll{$inputs$ of $nextS$}{
+		    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, nextS, nLayer)\}$\;
+		}
+	    }
+	}
+    }
+ }
+ $G.nodes \leftarrow G.nodes \cup \{start\}$\;
+ $G.edges \leftarrow G.edges \cup \createEdges(start,nextToSatisfy)$\;
+ \Return $G$\;
+\caption{Algorithm for building final graph solution.}
+\label{solutionBuilding}
+\end{algorithm}
 
 \section{Experiment Design}\label{experiment_design}
 
