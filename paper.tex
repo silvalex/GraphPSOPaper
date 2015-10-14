@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-Web service composition has been an active research topic in the past years, as the prospect of having a system that automatically creates complex applications from building blocks (Web services) given some parameters is quite attractive to users. Existing approaches to automated composition rely on modifying and optimising solution structures directly, a complex process that requires several constraints to be considered before each alteration. In this work, a Particle Swarm Optimisation (PSO) with indirect composition representations is explored, using each particle to hold a service queue which is then decoded into a composition solution graph before fitness evaluation. This approach is compared to a previously proposed graph-based direct representation method, and experiment results show that the proposed approach produces solutions with greater or equivalent quality, even though its execution time is higher. Bar graphs showing the frequency with which each atomic service appears in a solution are also produced, indicating that the PSO-based approach explores a larger area of the search space.
+Web service composition has been an active research topic in the past years, as the prospect of having a system that automatically creates complex applications from building blocks (Web services) given some parameters is quite attractive to users. Existing approaches to automated composition rely on modifying and optimising solution structures directly, a complex process that requires several constraints to be considered before each alteration. In this work, two variations of a Particle Swarm Optimisation (PSO) with indirect composition representations are explored, using each particle to hold a service queue which is then decoded into a composition solution graph before fitness evaluation. These approaches are compared to a previously proposed graph-based direct representation method, and experiment results show that the one of the proposed PSO approaches produces solutions with greater or equivalent quality while requiring a lower execution time. Bar graphs showing the frequency with which each atomic service appears in a solution are also produced, indicating that the PSO-based approaches explore a larger area of the search space than the direct representation method.
 
 \end{abstract}
 
@@ -32,11 +32,11 @@ Web service composition has been an active research topic in the past years, as 
 
 Software developers around the world are well acquainted with \textit{Web services}, which may be defined as applications that provide operations and/or data and are accessible via the network using communication protocols \cite{gottschalk2002introduction}. The advantage of these services lies in their modularity: they provide specific functionality that can be seamlessly integrated into larger applications, thus leading to code reuse and preventing time-consuming reimplementation \cite{dustdar2008services}. Indeed, the self-contained nature of Web services has led users to think of them as building blocks for more complex applications, selected and integrated as needed from a repository of available candidates in a process known as \textit{Web service composition} \cite{dustdar2008services}. As the number of candidates in the repository grows and as composition tasks become more complex, however, performing the selection and integration of services manually becomes increasingly difficult \cite{lecue2006formal}. Additionally, if the repository contains multiple candidates with equivalent functionality but different quality attributes, then manually choosing the ideal alternative to include in a composition may become infeasible \cite{gronmo2005model}. To overcome these challenges, researchers have been investigating the development of techniques to perform \textit{automated Web service composition} \cite{milanovic2004current}. By using these techniques, the \textit{composition requestor} would be able to simply specify the inputs and outputs of the desired application, and an \textit{automated composition system} would then correctly select and integrate services into a correct composition solution.
 
-One important group of techniques to Web service composition focuses on creating a correct composition workflow, where atomic services are connected in a way that can be executed at runtime \cite{}. Another group focuses on optimising the quality of compositions, assuming that an abstract workflow is already known for the composition and then employing optimisation techniques to bind the best possible set of concrete services to this existing structure \cite{}. A third group of approaches attempts to address both of these concerns simultaneously, creating a correct workflow at the same time that it optimises the quality of the services included in the composition \cite{da2015graphevol}. However, simultaneously accomplishing these two tasks increases the complexity of these approaches, since the optimisation must also respect a number of interrelated constraints \cite{venkatraman2005generic}.
+One important group of techniques to Web service composition focuses on creating a correct composition workflow, where atomic services are connected in a way that can be executed at runtime \cite{rodriguez2010composition}. Another group focuses on optimising the quality of compositions, assuming that an abstract workflow is already known for the composition and then employing optimisation techniques to bind the best possible set of concrete services to this existing structure \cite{wang2010improved,amiri2012effective}. A third group of approaches attempts to address both of these concerns simultaneously, creating a correct workflow at the same time that it optimises the quality of the services included in the composition \cite{da2015graphevol}. However, simultaneously accomplishing these two tasks increases the complexity of these approaches, since the optimisation must also respect a number of interrelated constraints \cite{venkatraman2005generic}.
 
-An alternative way to manage the complexity of addressing the simultaneous creation and optimisation of composition workflows is to optimise a set of heuristics that are then used for the construction of solutions, instead of directly optimising the actual compositions. This allows heuristics to be freely optimised, and constraints to be enforced once those heuristics are employed in the construction of a final solution. In this paper, a Particle Swarm Optimisation (PSO) \cite{eberhart2001particle} Web service composition approach that employs the strategy explained above is presented. More specifically, PSO is used to optimise the order of a queue of atomic services that is then provided to a graph-building algorithm. This algorithm uses the optimised queue to constructs composition solutions that abide by correctness constraints. The hypothesis is that this indirect optimisation approach will produce solutions that are equivalent to or better than direct optimisation approaches, while at the same time proposing a simpler composition approach.
+An alternative way to manage the complexity of addressing the simultaneous creation and optimisation of composition workflows is to optimise a set of heuristics that are then used for the construction of solutions, instead of directly optimising the actual compositions. This allows heuristics to be freely optimised, and constraints to be enforced once those heuristics are employed in the construction of a final solution. In this paper, two variations of a Particle Swarm Optimisation (PSO) \cite{eberhart2001particle} Web service composition approach that employs the strategy explained above are presented. More specifically, PSO is used to optimise the order of a queue of atomic services that is then provided to a graph-building algorithm. This algorithm uses the optimised queue to constructs composition solutions that abide by correctness constraints. The hypothesis is that this indirect optimisation approach will produce solutions that are equivalent to or better than direct optimisation approaches, while at the same time proposing a simpler composition approach.
 
-The remainder of this paper is organised as follows: section \ref{background} provides the fundamental background on the Web service composition problem, including a literature review; section \ref{pso_approach} describes the PSO approach proposed in this paper; section \ref{experiment_design} describes the experiments conducted to test the performance of the novel PSO approach; section \ref{results} presents the results of these experiments; section \ref{conclusion} concludes the paper.
+The remainder of this paper is organised as follows: section \ref{background} provides the fundamental background on the Web service composition problem, including a literature review; section \ref{pso_approach} describes the initial PSO approach proposed in this paper; section \ref{layered_pso_approach} presents the layered PSO approach proposed in this work; section \ref{experiment_design} describes the experiments conducted to test the performance of the novel PSO approaches; section \ref{results} presents the results of these experiments; section \ref{conclusion} concludes the paper.
 
 \section{Background}\label{background}
 
@@ -165,46 +165,19 @@ The aim of the PSO-based composition approach proposed in this paper is to optim
 
 \subsection{Particle Mapping (Step 1)}
 
-As explained before, each particle in this approach represents a queue of candidate services, i.e. a queue of those services that can potentially be used to construct a solution that satisfies the composition request. However, before the optimisation process begins the service repository is run through a discovery process \cite{wang2013genetic} that identifies the subset of services that could possibly be used to create a composition. As shown in Algorithm \ref{discovery}, this filtering process requires the set of inputs ($I$) and the set of outputs ($O$) from the overall composition task, in addition to the service repository ($R$); given these inputs, it produces a list of candidate services that are relevant to the composition ($S_{list}$). The algorithm keeps track of all available inputs so far ($C_{search}$), and uses them to discover additional services: if a previously undiscovered service has all of its inputs satisfied by $C_{search}$, then it is added to $S_{list}$ and its outputs are added as available inputs in $C_{search}$. The discovery continues until no additional services are found, and the final step verifies whether the desired composite output $O$ can in fact be achieved using the services in the repository.
-
-\begin{algorithm}
-\setlength\hsize{0.9\linewidth}
- \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
- \LinesNumbered
- \SetNlSty{}{}{:}
- %\SetLine % For v3.9
- \Input{$I$, $O$, $R$}
- \Output{a list of services $S_{list}$}
- $C_{search} \leftarrow I$\;
- $S_{list} \leftarrow \{\}$\;
- $S_{found} \leftarrow DiscoverService()$\;
- \While{$|S_{found}| > 0$}{
-  $S_{list} \leftarrow S_{list} \cup S_{found}$\;
-  $C_{search} \leftarrow C_{search} \cup C_{output}$ of $S_{found}$\;
-  $S_{found} \leftarrow DiscoverService()$\;
-  }
-  \eIf{$C_{search} \supseteq O$}{
-   \Return $S_{list}$\;
-   }{
-   Report no solution\;
- }
-\caption{Discovering relevant services for composition \cite{wang2013genetic}.}
-\label{discovery}
-\end{algorithm}
-
-Once the relevant services within the repository have been identified, they are mapped to particles in the swarm following the principle depicted in Figure \ref{mapping}. Namely, each relevant service is mapped to a different index of the particle's position vector in a consistent manner, so that a given index value corresponds to the same service across the entire swarm. This means that the number of dimensions in a particle is determined dynamically, and it corresponds to the number of relevant services in the repository. Each cell in the the position vectors of all particles are randomly initialised with values between 0 and 1 (inclusive).
+As explained before, each particle in this approach represents a queue of candidate services, i.e. a queue of those services that can potentially be used to construct a solution that satisfies the composition request. These services are mapped to particles in the swarm following the principle depicted in Figure \ref{mapping}. Namely, each service is mapped to a different index of the particle's position vector in a consistent manner, so that a given index value corresponds to the same service across the entire swarm. This means that the number of dimensions in a particle is determined dynamically, and it corresponds to the number of services in the repository. Each cell in the the position vectors of all particles are randomly initialised with values between 0 and 1 (inclusive).
 
 \begin{figure}[h]
 \centerline{
 \fbox{
 \includegraphics[width=6cm]{mapping.pdf}}}
- \caption{Mapping of relevant services to particles, and random initialisation.}
+ \caption{Mapping of services to particles, and random initialisation.}
  \label{mapping}
 \end{figure}
 
 \subsection{Creation of Service Queue (Step 3)}
 
-Before constructing a composition graph based on the information contained in a particle, it is necessary to construct a service queue using the particle's position vector. As shown in Figure \ref{queue}, this is done by checking the service-to-index mapping for the particles' position vector. Each relevant service is placed on the queue with an associated weight, which is retrieved by accessing the position vector with the index mapped to that service. This queue is then sorted according to these weights, placing the services with the highest weight at the head of the queue, and those with the lowest weight at the tail. Note that if two or more services have the same weight, then the ordering between them may vary.
+Before constructing a composition graph based on the information contained in a particle, it is necessary to construct a service queue using the particle's position vector. As shown in Figure \ref{queue}, this is done by checking the service-to-index mapping for the particles' position vector. Each service is placed on the queue with an associated weight, which is retrieved by accessing the position vector with the index mapped to that service. This queue is then sorted according to these weights, placing the services with the highest weight at the head of the queue, and those with the lowest weight at the tail. Note that if two or more services have the same weight, then the ordering between them may vary.
 
 \begin{figure}[h]
 \centerline{
@@ -282,7 +255,7 @@ normalise(value) =
 \end{cases}
 \end{equation}
 
-\section{Layered PSO-based Composition Approach}
+\section{Layered PSO-based Composition Approach}\label{layered_pso_approach}
 
 A variation to the PSO-based approach proposed in the previous section, which considers the use of service layers, was also developed. As shown in Algorithm \ref{novelLayeredSteps}, this approach follows the same steps used in the non-layered method, with three fundamental differences: firstly, the mapping of candidates to an index in the particle's position vector includes the division of the services that can potentially be included into a composition for the given task into layers; secondly, the the decoding and evaluation of the solution represented by a particle are performed in a single step by using a new algorithm that does not require the creation of a graph; finally, a graph representing the global best solution is created after the optimisation process has finished running. Each of these steps is explained in the subsections below.
 
@@ -317,35 +290,49 @@ A variation to the PSO-based approach proposed in the previous section, which co
 
 \subsection{Layer Identification and Particle Mapping (Step 1)}
 
-The unique feature of the PSO approach proposed in this section is that it identifies the \textit{composition layer} to which a service belongs. The layers are determined during the discovery process that identifies the services that could be possibly used in the composition, which means that Algorithm \ref{discovery} is revised to keep track of composition layers, as shown in the extended Algorithm \ref{layeredDiscovery}. Each time a new set $S_{found}$ of services is discovered, it is classified as a new composition layer. The implication of this classification is that the inputs of a service in a given layer can be completely satisfied by using the services in previously discovered layers, which later facilitates the solution decoding and fitness calculation process.
+The unique feature of the PSO approach proposed in this section is that it identifies the \textit{composition layer} to which a service belongs. Before the optimisation process begins, the service repository is run through a discovery process \cite{wang2013genetic} that identifies the services that could be possibly used in the composition. As shown in Algorithm \ref{discovery}, this filtering process requires the set of inputs ($I$) and the set of outputs ($O$) from the overall composition task, in addition to the service repository ($R$); given these inputs, it produces a list of candidate service layers that are relevant to the composition ($L$). The algorithm keeps track of all available inputs so far ($C_{search}$), and uses them to discover additional layers: if a previously undiscovered service has all of its inputs satisfied by $C_{search}$, then it is added to the current layer and its outputs are added as available inputs in $C_{search}$. The discovery continues until no additional layers are found, and the final step verifies whether the desired composite output $O$ can in fact be achieved using the services in the repository. Once the composition layers are identified, the particle mapping takes place. As shown in in Figure \ref{layeredMapping}, each service layer is mapped to contiguous particle indices, effectively segmenting particles according to the layers. This segmentation facilitates the solution decoding process discussed in the following subsection.
 
 \begin{algorithm}
 \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \LinesNumbered
  \SetNlSty{}{}{:}
+ %\SetLine % For v3.9
  \Input{$I$, $O$, $R$}
- \Output{a list of services $S_{list}$}
+ \Output{service layers $L$}
  $C_{search} \leftarrow I$\;
- $S_{list} \leftarrow \{\}$\;
+ $L \leftarrow \{\}$\;
+ $i \leftarrow i$\;
  $S_{found} \leftarrow DiscoverService()$\;
  \While{$|S_{found}| > 0$}{
-  $S_{list} \leftarrow S_{list} \cup S_{found}$\;
+  $L.add(S_{found},i)$\;
+  $i \leftarrow i + 1$\;
   $C_{search} \leftarrow C_{search} \cup C_{output}$ of $S_{found}$\;
   $S_{found} \leftarrow DiscoverService()$\;
   }
   \eIf{$C_{search} \supseteq O$}{
-   \Return $S_{list}$\;
+   \Return $L$\;
    }{
    Report no solution\;
  }
-\caption{Discovering relevant services for composition and tracking composition layers.}
-\label{layeredDiscovery}
+\caption{Discovering relevant service composition layers \cite{wang2013genetic}.}
+\label{discovery}
 \end{algorithm}
 
-Just as before, services are mapped to particle indices once the discovery process has taken place. This time, however, the mapping is organised so that 
+\begin{figure}[h]
+\centerline{
+\fbox{
+\includegraphics[width=6cm]{layeredMapping.pdf}}}
+ \caption{Mapping of services to particles according to layers.}
+ \label{layeredMapping}
+\end{figure}
 
 \subsection{Solution Decoding and Fitness Calculation (Step 3)}
+
+The solution decoding step employed in the layered PSO approach is fundamentally different from that of the simple PSO approach. Since particles are segmented by layers, it becomes possible to build graph solutions backwards (i.e. from the graph's end node towards the graph's start node) without leading to cycles being formed, provided that only services from previous layers are used to fulfil the input of a service in the current layer. Another difference is that the solution decoding process shown here does not produce a graph structure at the end of its execution, and instead calculates the fitness of the solution at the same time that the solution is identified. As discussed earlier, before the decoding process can begin it is necessary to order candidate services according to the weights contained in the particle. Instead of generating a single queue, however, we generate one individual queue for each of the layers mapped to that particle, creating a series of sorted layers ($L$). These sorted layers are then provided in conjunction with the solution's $end$ node as the input to Algorithm \ref{solutionDecoding}, which calculates the corresponding fitness ($f$) to the particle's solution.
+
+The algorithm works by keeping track of all service inputs that need to be satisfied ($nextToSatisfy$), initialising it to contain all the inputs required by the end node. Then, the algorithm is executed from the last layer (layer $i = |L|$) towards the first layer (layer $i = 1$), each time performing the same series of steps. Firstly, all the inputs in $nextToSatisfy$ that correspond to services in the current layer are identified as $toSatisfy$. Then, all previous sorted layers (excluding the current layer $i$) are merged into a single service queue that is then used to fulfil the entries in $toSatisfy$. As each service is selected from the queue to satisfy a given input, its QoS values are added to the QoS totals and all of its inputs are placed in the $nextToSatisfy$ set. The $time$ aspect of QoS is calculated by keeping track of the longest total time required by the services in previously processed layers, and by updating this total time with each new service addition. It is important to note that if an input in $toSatisfy$ cannot be fulfilled by any of the services in the merged queue (i.e. $nextS = null$), this input will be fulfilled by the composition's given values. After all layers are satisfied, the fitness is calculated using the same fitness calculation approach as the previous PSO and the algorithm returns the result. 
+
 
 \begin{algorithm}
 \setlength\hsize{0.9\linewidth}
@@ -401,6 +388,8 @@ Just as before, services are mapped to particle indices once the discovery proce
 
 \subsection{Construction of Final Graph (Step 8)}
 
+As the decoding algorithm described in the previous subsection does not create a directed acyclic graph out of every candidate solution, at the end of the run it is necessary to build a solution graph out of the overall fittest particle by using Algorithm \ref{solutionBuilding}. This algorithm has a very similar structure to the decoding one, but instead of calculating QoS values it connects services from earlier layers whose outputs fulfil the inputs of services in later layers. As before, the algorithm goes through all composition layers, though in this case the final step is to connect the $start$ node to any service with inputs that are still unfulfilled. Finally, the composition graph $G$ is returned.
+
 \begin{algorithm}
 \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
@@ -408,7 +397,7 @@ Just as before, services are mapped to particle indices once the discovery proce
  \SetKwFunction{eNull}{null}\SetKwFunction{getInputsSatisfied}{getInputsSatisfied}\SetKwFunction{createEdges}{createEdges}
  \LinesNumbered
  \SetNlSty{}{}{:}
- \Input{$start$, $end$, sorted layers $L$, $weights$}
+ \Input{$start$, $end$, sorted layers $L$}
  \Output{final graph $G$}
  $G.nodes \leftarrow \{end\}$\;
  $G.edges \leftarrow \{\}$\;
@@ -449,11 +438,11 @@ Just as before, services are mapped to particle indices once the discovery proce
 
 \section{Experiment Design}\label{experiment_design}
 
-Experiments were conducted to evaluate the performance of the PSO-based indirect composition approach in comparison to a graph-based direct composition approach \cite{da2015graphevol}, according to three criteria. The first criterion is execution time, with the hypothesis that the graph-based approach will take less time to execute than the PSO-based approach; the second criterion is best solution fitness, with the hypothesis that the solutions provided by the PSO-based approach will match or surpass the quality of those produced by the graph-based approach; the third criterion is search space coverage, with the hypothesis that the PSO-based approach will consider a greater variety of solutions during the search process than the graph-based approach. If these hypotheses are shown to be true, the implication is that the PSO-based is a suitable Web service composition alternative when prioritising the exploration of the search space.
+Experiments were conducted to evaluate the performance of the PSO-based indirect composition approaches in comparison to a graph-based direct composition approach \cite{da2015graphevol}, according to three criteria. The first criterion is execution time, with the hypothesis that the graph-based approach will take more time to execute than the PSO-based approaches; the second criterion is best solution fitness, with the hypothesis that the solutions provided by the PSO-based approaches will match or surpass the quality of those produced by the graph-based approach; the third criterion is search space coverage, with the hypothesis that the PSO-based approaches will consider a greater variety of solutions during the search process than the graph-based approach. If these hypotheses are shown to be true, the implication is that the indirect PSO-based strategy is a suitable Web service composition alternative when prioritising the fast exploration of the search space.
 
 \subsection{Parameters}
 
-All experiments were conducted on a personal computer with 8 GB RAM and and an Intel Core i7-4770 CPU (3.4GHz). The datasets and tasks from WSC-2008 \cite{bansal2008wsc} and WSC-2009 \cite{kona2009wsc} were used to compare the graph-based and PSO-based approaches, with 30 independent runs for each approach using each dataset. The choice of the parameters used for executing each approach, shown in Table \ref{tab:parameters}, was based on common settings from the literature \cite{koza1992genetic,eberhart2001particle}.
+All experiments were conducted on a personal computer with 8 GB RAM and and an Intel Core i7-4770 CPU (3.4GHz). The datasets and tasks from WSC-2008 \cite{bansal2008wsc} and WSC-2009 \cite{kona2009wsc} were used to compare the graph-based and PSO-based approaches, with 30 independent runs for each approach using each dataset. The choice of the parameters used for executing each approach, shown in Table \ref{tab:parameters}, was based on common settings from the literature \cite{koza1992genetic,eberhart2001particle}, with the two PSO approaches using the same settings.
 
 \begin{table}[h]
 \centering
@@ -474,15 +463,15 @@ Tournament size        & 2              &                     &                \
 
 \section{Results}\label{results}
 
-Results showing the execution time and solution fitness of the graph-based and the PSO-based approaches are displayed in Table \ref{tab:results}, where the first column indicates the dataset used, the second and third columns contain the mean execution time and mean fitness (respectively) of the PSO-based approach, and the fourth and fifth columns contain the time and fitness of the graph-based approach. All values are shown in 2dp, and means are accompanied by the standard deviation. A Wilcoxon signed-rank test at .95 confidence interval was conducted to ascertain whether the differences between the results for the two approaches are statistically significant, and the symbols $\uparrow$ and $\downarrow$ are used to indicate significantly larger and significantly smaller values, respectively.
+Results showing the execution time and solution fitness of the graph-based and the simple PSO-based approach are displayed in Table \ref{tab:results}, where the first column indicates the dataset used, the second and third columns contain the mean execution time and mean fitness (respectively) of the PSO-based approach, and the fourth and fifth columns contain the time and fitness of the graph-based approach. All values are shown in 2dp, and means are accompanied by the standard deviation. A Wilcoxon signed-rank test at .95 confidence interval was conducted to ascertain whether the differences between the results for the two approaches are statistically significant, and the symbols $\uparrow$ and $\downarrow$ are used to indicate significantly larger and significantly smaller values, respectively. The results of the comparison between graph-based and the layered PSO-based approach are shown in table \ref{tab:results_layered}, which shares the layout described above.
 
 \begin{table}[h]
 \centering
-\caption{Execution time and fitness results for PSO and graph-based composition approaches.}
+\caption{Execution time and fitness results for simple PSO and graph-based composition approaches.}
 \label{tab:results}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
-\multirow{2}{*}{{\bf Dataset}} & \multicolumn{2}{c|}{{\bf PSO-based}}               & \multicolumn{2}{c|}{{\bf Graph-based}}                     \\ \cline{2-5} 
+\multirow{2}{*}{{\bf Dataset}} & \multicolumn{2}{c|}{{\bf Simple PSO}}              & \multicolumn{2}{c|}{{\bf Graph-based}}                     \\ \cline{2-5} 
                                & {\bf Time (s)}    & {\bf Fitness}                  & {\bf Time (s)}            & {\bf Fitness}                  \\ \hline
 WSC-08-1                       & $2.1 \pm 0.5$     & $0.49 \pm 1.18\e{-3}$          & $3.2 \pm 0.4$             & $0.49 \pm 5.17\e{-5}$          \\ \hline
 WSC-08-2                       & $4.1 \pm 2.1$     & $0.59 \pm 1.30\e{-2}$          & $2.6 \pm 0.4 \downarrow$  & $0.60 \pm 0.00$                \\ \hline
@@ -500,9 +489,35 @@ WSC-09-5                       & $2124.0\pm 580.0$ & $0.50 \pm 1.05\e{-5}$      
 \end{tabular}
 \end{table}
 
+\begin{table}[h]
+\centering
+\caption{Execution time and fitness results for layered PSO and graph-based composition approaches.}
+\label{tab:results}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\multirow{2}{*}{{\bf Dataset}} & \multicolumn{2}{c|}{{\bf Layered PSO}}             & \multicolumn{2}{c|}{{\bf Graph-based}}                     \\ \cline{2-5} 
+                               & {\bf Time (s)}    & {\bf Fitness}                  & {\bf Time (s)}            & {\bf Fitness}                  \\ \hline
+WSC-08-1                       & $0.3 \pm 0.1$            & $0.49 \pm 1.19\e{-3}$          & $3.2 \pm 0.4$             & $0.49 \pm 5.17\e{-5}$          \\ \hline
+WSC-08-2                       & $0.4 \pm 0.1 \downarrow$ & $0.59 \pm 1.40\e{-2}$          & $2.6 \pm 0.4$             & $0.60 \pm 0.00$                \\ \hline
+WSC-08-3                       & $0.9 \pm 0.1 \downarrow$ & $0.49 \pm 2.01\e{-4} \uparrow$ & $14.3 \pm 1.1$            & $0.49 \pm 1.45\e{-4}$          \\ \hline
+WSC-08-4                       & $0.5 \pm 0.1$            & $0.51 \pm 7.20\e{-4}$          & $6.1 \pm 0.6$             & $0.51 \pm 1.24\e{-3}$          \\ \hline
+WSC-08-5                       & $0.9 \pm 0.1 \downarrow$ & $0.50 \pm 9.93\e{-5} \uparrow$ & $10.1 \pm 1.3$            & $0.50 \pm 4.14\e{-5}$          \\ \hline
+WSC-08-6                       & $3.8 \pm 0.2 \downarrow$ & $0.50 \pm 1.24\e{-4} \uparrow$ & $21.9 \pm 1.5$            & $0.50 \pm 2.29\e{-5}$          \\ \hline
+WSC-08-7                       & $3.2 \pm 0.4 \downarrow$ & $0.50 \pm 4.03\e{-5} \uparrow$ & $52.6 \pm 3.7$            & $0.50 \pm 1.91\e{-5}$          \\ \hline
+WSC-08-8                       & $7.4 \pm 0.6 \downarrow$ & $0.50 \pm 3.03\e{-5}$          & $75.2 \pm 13.8$           & $0.50 \pm 2.19\e{-6}$          \\ \hline
+WSC-09-1                       & $0.4 \pm 0.1 \downarrow$ & $0.57 \pm 1.73\e{-2}$          & $3.2 \pm 0.5$             & $0.57 \pm 9.91\e{-3}$          \\ \hline
+WSC-09-2                       & $3.2 \pm 0.3 \downarrow$ & $0.50 \pm 5.26\e{-5} \uparrow$ & $18.1 \pm 1.6$            & $0.50 \pm 8.04\e{-6}$          \\ \hline
+WSC-09-3                       & $5.0 \pm 1.1 \downarrow$ & $0.51 \pm 2.93\e{-3}$          & $23.3 \pm 0.6$            & $0.51 \pm 1.21\e{-3}$          \\ \hline
+WSC-09-4                       & $21.0\pm 3.3 \downarrow$ & $0.50 \pm 5.08\e{-5} \uparrow$ & $65.1 \pm 2.9$            & $0.50 \pm 1.03\e{-5}$          \\ \hline
+WSC-09-5                       & $11.9\pm 2.1 \downarrow$ & $0.50 \pm 1.30\e{-5}$          & $151.1\pm 17.8$           & $0.50 \pm 5.31\e{-6}$          \\ \hline
+\end{tabular}
+\end{table}
+
 \subsection{Bar Charts}
 
-In order to evaluate the third comparison criterion, additional data were collected to reveal underlying patterns regarding the search behaviour of the two techniques. More specifically, the frequency with which each atomic service appears in all solutions throughout the search/evolutionary process was tallied and displayed as a bar chart, sorted by frequency, with 0 indicating that a service appears in 0\% of the solutions and 1 indicating 100\% of them. This technique was based on the analysis performed in works in the area of feature selection \cite{NguyenEvoStar2015,filterWrapperCEC2015}, and it allows us to verify how often certain areas of the search space are visited and whether the two techniques visit certain atomic services with comparable frequencies. A high-level view of the bar charts produced when running both techniques is shown in Figure \ref{bar_charts2008} for WSC-2008 datasets, and in Figure \ref{bar_charts2009} for WSC 2009.
+In order to evaluate the third comparison criterion, additional data were collected to reveal underlying patterns regarding the search behaviour of the two techniques. More specifically, the frequency with which each atomic service appears in all solutions throughout the search/evolutionary process was tallied and displayed as a bar chart, sorted by frequency, with 0 indicating that a service appears in 0\% of the solutions and 1 indicating 100\% of them. This technique was based on the analysis performed in works in the area of feature selection \cite{NguyenEvoStar2015,filterWrapperCEC2015}, and it allows us to verify how often certain areas of the search space are visited and whether the two techniques visit certain atomic services with comparable frequencies. A high-level view of the bar charts produced by each technique is shown in Figure \ref{bar_charts2008} for WSC-2008 datasets, and in Figure \ref{bar_charts2009} for WSC 2009.
+
+% Produce three bar charts, side by side
 
 \begin{figure}[h]
 \centerline{
@@ -520,7 +535,7 @@ In order to evaluate the third comparison criterion, additional data were collec
  \label{bar_charts2009}
 \end{figure}
 
-\section{Analysis of Results}
+\section{Analysis of Results} % Rewrite this section
 
 The fitness results presented in Table \ref{tab:results} generally show that the solution fitness produced by the PSO-based approach is equivalent to that of the graph-based approach. However, it must also be noted that the fitness of solutions is significantly higher for the PSO-based approach in a number of datasets (3, 6, and 7 of WSC 2008, and 4 of WSC 2009), whereas this is only the case for the graph-based approach when using dataset 5 of WSC 2009. Thus, these results indicate that the PSO-based approach is preferrable when the focus of the composition process is on the quality of the resulting solutions. This conclusion is supported by the bar graphs produced when running each dataset, which show that PSO explores the inclusion of different atomic services in a more ``spread'' way than the graph-based approach for all datasets. Namely, the frequencies with which services appear in graph-based solutions are either very high or very low, indicating that this approach converges to a small area of the search space relatively quickly. In the PSO-based approach, on the other hand, the atomic service frequencies lower gradually, showing that a larger area of the search space was considered.
 
@@ -528,7 +543,7 @@ Finally, with regards to the execution time of the two techniques, it is clear t
 
 \section{Conclusion}\label{conclusion}
 
-This work introduced a PSO-based QoS-aware Web service composition approach that relies on an indirect solution representation, as opposed to the direct representations used by current works in the area. The key idea of this approach is to optimise a queue of candidate atomic services, identifying the sequence that leads to the construction of a composition with the highest possible quality. In order to evaluate the quality of a candidate, the queue is fed into an algorithm that builds a directed acyclic graph (DAG) representing a service composition, which is then used in fitness calculations. This PSO-based approach was compared to a graph-based approach with direct solution representation, with results showing that the quality of the solutions produced by PSO generally matches or surpasses those produced by the graph-based approach, even though PSO requires a longer execution time. Additionally, tracking of the appearance of atomic services in solutions throughout the run showed that PSO explores the search space more effectively than its graph-based counterpart. Future work to this approach should investigate ways of reducing the execution time required when decoding solutions from the particles, by considering alternative particle representations and improved algorithms for building DAGs from service queues.
+This work introduced two PSO-based QoS-aware Web service composition approaches that rely on an indirect solution representation, as opposed to the direct representations used by current works in the area. The key idea of these approaches is to optimise a queue of candidate atomic services, identifying the sequence that leads to the construction of a composition with the highest possible quality. In order to evaluate the quality of a candidate, the queue is fed into algorithms that decode the underlying solution and calculate its fitness. These PSO-based approaches were compared to a graph-based approach with direct solution representation, with results showing that the quality of the solutions produced by PSO generally matches or surpasses those produced by the graph-based approach, even though the layered PSO has a shorter execution time than the graph-based approach. Additionally, tracking of the appearance of atomic services in solutions throughout the run showed that both PSO methods explore the search space more effectively than their graph-based counterpart. Future works in this area should investigate ways of further improving and simplifying the decoding algorithms used during the PSO fitness calculation step, as well as considering alternative particle encodings.
 
 \bibliographystyle{splncs03}
 \bibliography{bibliography}
