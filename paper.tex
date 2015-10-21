@@ -492,7 +492,7 @@ WSC-09-5                       & $2124.0\pm 580.0$ & $0.50 \pm 1.05\e{-5}$      
 \begin{table}[h]
 \centering
 \caption{Execution time and fitness results for layered PSO and graph-based composition approaches.}
-\label{tab:results}
+\label{tab:results_layered}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
 \multirow{2}{*}{{\bf Dataset}} & \multicolumn{2}{c|}{{\bf Layered PSO}}             & \multicolumn{2}{c|}{{\bf Graph-based}}                     \\ \cline{2-5} 
@@ -517,29 +517,27 @@ WSC-09-5                       & $11.9\pm 2.1 \downarrow$ & $0.50 \pm 1.30\e{-5}
 
 In order to evaluate the third comparison criterion, additional data were collected to reveal underlying patterns regarding the search behaviour of the two techniques. More specifically, the frequency with which each atomic service appears in all solutions throughout the search/evolutionary process was tallied and displayed as a bar chart, sorted by frequency, with 0 indicating that a service appears in 0\% of the solutions and 1 indicating 100\% of them. This technique was based on the analysis performed in works in the area of feature selection \cite{NguyenEvoStar2015,filterWrapperCEC2015}, and it allows us to verify how often certain areas of the search space are visited and whether the two techniques visit certain atomic services with comparable frequencies. A high-level view of the bar charts produced by each technique is shown in Figure \ref{bar_charts2008} for WSC-2008 datasets, and in Figure \ref{bar_charts2009} for WSC 2009.
 
-% Produce three bar charts, side by side
-
 \begin{figure}[h]
 \centerline{
 \fbox{
-\includegraphics[width=10cm]{node_plots_run1_2008.pdf}}}
- \caption{Bar charts showing the frequency with which atomic services appear in solutions, for WSC 2008 datasets.}
+\includegraphics[width=10cm]{triple_node_plots_run1_2008.pdf}}}
+ \caption{Bar charts showing the frequency with which atomic services appear in solutions, for WSC 2008 datasets. Rows: datasets 1 to 8, from top to bottom. Columns: graph-based approach, simple PSO approach, and layered PSO approach, from left to right.}
  \label{bar_charts2008}
 \end{figure}
 
 \begin{figure}[h]
 \centerline{
 \fbox{
-\includegraphics[width=10cm]{node_plots_run1_2009.pdf}}}
- \caption{Bar charts showing the frequency with which atomic services appear in solutions, for WSC 2009 datasets.}
+\includegraphics[width=10cm]{triple_node_plots_run1_2009.pdf}}}
+ \caption{Bar charts showing the frequency with which atomic services appear in solutions, for WSC 2009 datasets. Rows: datasets 1 to 5, from top to bottom. Columns: graph-based approach, simple PSO approach, and layered PSO approach, from left to right.}
  \label{bar_charts2009}
 \end{figure}
 
 \section{Analysis of Results} % Rewrite this section
 
-The fitness results presented in Table \ref{tab:results} generally show that the solution fitness produced by the PSO-based approach is equivalent to that of the graph-based approach. However, it must also be noted that the fitness of solutions is significantly higher for the PSO-based approach in a number of datasets (3, 6, and 7 of WSC 2008, and 4 of WSC 2009), whereas this is only the case for the graph-based approach when using dataset 5 of WSC 2009. Thus, these results indicate that the PSO-based approach is preferrable when the focus of the composition process is on the quality of the resulting solutions. This conclusion is supported by the bar graphs produced when running each dataset, which show that PSO explores the inclusion of different atomic services in a more ``spread'' way than the graph-based approach for all datasets. Namely, the frequencies with which services appear in graph-based solutions are either very high or very low, indicating that this approach converges to a small area of the search space relatively quickly. In the PSO-based approach, on the other hand, the atomic service frequencies lower gradually, showing that a larger area of the search space was considered.
+The fitness results presented in Tables \ref{tab:results} and \ref{tab:results_layered} generally show that the solution fitness produced by the PSO-based approaches is equivalent to that of the graph-based approach. However, it must also be noted that the fitness of PSO solutions is significantly higher for a number of datasets (08-3, 08-6, 08-7, 09-4 for the simple PSO; 08-3, 08-5, 08-6, 08-7, 09-2, 09-4 for the layered PSO), whereas this is only the case for the graph-based approach when using dataset 09-5 (in comparison to the simple PSO). Thus, these results indicate that the PSO-based approaches are preferrable when the focus of the composition process is on the quality of the resulting solutions. This conclusion is supported by the bar graphs produced when running each dataset, which show that both PSO approaches explore the inclusion of different atomic services in a more ``spread'' way than the graph-based approach for all datasets. Namely, the frequencies with which services appear in graph-based solutions are either very high or very low, indicating that this approach converges to a small area of the search space relatively quickly. In the PSO-based approaches, on the other hand, the atomic service frequencies lower gradually, showing that a larger area of the search space was considered.
 
-Finally, with regards to the execution time of the two techniques, it is clear that the PSO-based approach is more time-consuming than the graph-based approach. This is the case for two reasons: firstly, the PSO-based approach must decode solutions before every fitness evaluations, which involves the time-consuming steps of sorting the service queue and building an entirely new graph; secondly, the queue must be traversed repeatedly when building the corresponding graph. Even though the graph-based approach also requires some graph reconstruction, it relies on a shorter queue of services that is gradually populated with relevant candidates, thus resulting in a more efficient execution.
+Finally, with regards to the execution time of the two techniques, an interesting pattern is observed: while the time required by the simple PSO-based approach is consistently higher than that of the graph-based approach, the time required by the layered PSO-based approach is consistently lower. This is the case for two reasons: firstly, the layered PSO decodes solutions backwards (from end to start), meaning it does not explore paths that do not ultimately connect the beginning and the end of a composition; secondly, during the decoding process the layered PSO goes through the services in the particle roughly $|layers| \times |services|$ in the worst case, whereas the worst case for the simple PSO is $|services|!$. These two key differences cause the layered approach to check for significantly less potential service connections, which accounts for the time difference. A simple test was carried out to confirm this supposition, running the simple and layered PSO approaches once each with WSC2008-8 (using the same settings as before) and counting how many times each of those approaches checked for potential service connections during the particle decoding process. The simple PSO count was 362,045,030 after finishing the run, while the layered PSO count was 2,126,349. From the results in Tables \ref{tab:results} and \ref{tab:results_layered} we see that the layered-to-simple execution time ratio for WSC2008-8 is roughly 1:70, while the layered-to-simple count ratio is roughly 1:170. The fact that these two execution aspects have similarly high ratios lends credence to the conjecture that the time difference is correlated with the amount of times the decoding algorithms check for potential connections during a run.
 
 \section{Conclusion}\label{conclusion}
 
