@@ -93,7 +93,7 @@ The component services of a sequence construct are executed in order, according 
 
 PSO is an optimisation algorithm based on the behaviour of social animals, such as a school of flying birds \cite{shi1998modified}. The core idea of PSO is to employ a swarm of particles that can communicate with each other to explore a search space and identify the best possible solution. Each particle holds a \textit{position} vector which specifies its current location in the solution space, and a \textit {velocity} vector that specifies the direction in which the particle is moving. Each particle also keeps track of the best solution location it has visited so far (i.e. its \textit{pBest}), and the whole swarm keeps track of the best overall location found so far (i.e. the \textit{gBest}). As explained in \cite{eberhart2001particle}, the original PSO process is divided into a number of steps, shown in Algorithm \ref{psoSteps}.
 
-\begin{algorithm}[h]
+\begin{algorithm}[!htb]
  \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \let\oldnl\nl% Store \nl in \oldnl
@@ -133,7 +133,7 @@ Finally, some approaches both create the composition workflow and optimise the q
 \section{PSO-Based Composition Approach}\label{pso_approach}
 The aim of the PSO-based composition approach proposed in this paper is to optimise the queue of services used by a graph-building algorithm, which in turn determines the structure of the resulting composition. The rationale behind the creation of this method is that the indirect optimisation of the service queue allows for a simpler optimisation process than modifying composition solutions directly, while at the same time reducing the risk of creating an overly constrained search space. As Algorithm \ref{novelSteps} shows, this approach follows the usual PSO steps, though with some particularities. Firstly, the size of particles is determined based on the number of candidate services being considered for the composition, with each candidate service being mapped to an index of the particle's position vector (step 1). Secondly, solutions must be built using a graph-building algorithm before their fitness can be calculated; a queue of services is generated from the particle's position vector (step 3) and used as the input for the algorithm (step 4), which decodes a corresponding solution graph from it. Finally, the particle's fitness can be calculated from this corresponding solution graph (step 5). Further discussion on each of these highlighted steps is carried out in the subsections below.
 
-\begin{algorithm}[h]
+\begin{algorithm}[!htb]
  \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \let\oldnl\nl% Store \nl in \oldnl
@@ -191,7 +191,7 @@ Before constructing a composition graph based on the information contained in a 
 
 By determining the service queue represented in a particle, it is then possible to build a composition graph from that service ordering, based on the Graphplan technique discussed in \cite{blum1997fast}. The graph is built in a forward way -- from the $start$ node towards the $end$ node -- to prevent the formation of cycles, which may lead to the addition of nodes that do not contribute to reaching the $end$ (i.e. dangling nodes). To address this, after the graph has been constructed it is submitted to a function that removes these redundant nodes.
 
-\begin{algorithm}[h]
+\begin{algorithm}[!htb]
  \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \SetKwFunction{connectNode}{connectNode}\SetKwFunction{findCands}{findCands}\SetKwFunction{removeDangling}{removeDangling}
@@ -199,41 +199,23 @@ By determining the service queue represented in a particle, it is then possible 
  \SetNlSty{}{}{:}
  \Input{$I$, $O$, $queue$}
  \Output{composition graph $G$}
- $start.outputs \leftarrow \{I\}$\;
- $end.inputs \leftarrow \{O\}$\;
- $G.edges \leftarrow \{\}$\;
- $G.nodes \leftarrow \{start\}$\;
- $availOutputs \leftarrow \{start.outputs\}$\;
- $index \leftarrow 0$\;
- \While{$end.inputs \not\sqsubseteq availInputs$}{\label{buildingLine}
- $cand \leftarrow queue.get(index)$\;
- $index \leftarrow index + 1$\;
- \If{$cand.inputs \sqsubseteq availOutputs$}{
- \connectNode{$cand, G$}\;
- $currEndInputs \leftarrow availOutputs \cup \{cand.outputs\}$\;
- $queue \leftarrow queue.remove(index)$\;
- $index \leftarrow 0$\;
+ Create $start$ node with outputs $I$ and $end$ node with inputs $O$\;
+ Create graph $G$ containing the $start$ node\;
+ Create set of available outputs containing $start$ outputs\;
+ \While{available outputs do not satisfy $end$ inputs}{
+ Get next candidate from queue\;
+ \If{candidate inputs are satisfied by available outputs}{
+ Connect node to graph\;
+ Remove it from queue and go back to the queue's beginning\;
  }}
- \connectNode{$end, G$}\;
- \removeDangling{$G$}\;
+ Connect end node\;
+ Remove dangling nodes from graph $G$\;
  \KwRet $G$\;
- \vspace{2mm}
- \SetKwProg{myproc}{Procedure}{}{}
- \myproc{\connectNode{$n, G$}}{
-   $inputsToFulfil \leftarrow \{cand.inputs\}$\;
- \While{$|inputsToFulfil| > 0$}{
-	$graphN \leftarrow G.nodes.next()$\; 
-	\If{$|n.inputs \sqcap graphN.outputs| > 0$}{
-	  $inputsToFulfil \leftarrow inputsToFulfil - (n.inputs \sqcap graphN.outputs)$\;
-	  $G.edges \leftarrow G.edges \cup \{graphN \rightarrow n\}$\;
-    }
-    $G.nodes \leftarrow G.nodes \cup \{n\}$\;
- }}
- \caption{Generating a composition graph from a queue.}
+ \caption{Generating a composition graph from a queue}
 \label{graph_building}
 \end{algorithm}
 
- As shown in Algorithm \ref{graph_building}, the values initially required are the composition task inputs ($I$), task outputs ($O$), and a $queue$ of services as its input; this leads to the creation of a composition graph $G$. We begin by assigning $I$ as the set of outputs produced by the graph's $start$ node, and $O$ as the set of input nodes required by the graph's $end$ node. Then, $start$ is added to the graph $G$, its outputs are added to a set ($availOutputs$) that records all available outputs from the nodes currently in the graph, and an $index$ variable is created to track positions in the $queue$ (holding 0, which indicates the queue head). After this setup stage, the following steps are repeated until $availOutputs$ can be used to fulfil all of the inputs of $end$: the node at the current $queue$ position ($index$) is retrieved as a candidate ($cand$); if all of its inputs can be fulfilled, $cand$ is connected to the graph using $connectNode$ -- which works by identifying existing nodes in the graph whose output fulfils the input of $cand$, and creating connecting edges from these existing nodes to $cand$ --, its outputs are added to $availOutputs$, it is removed from the queue, and $index$ is reset to 0; otherwise, the candidate in the next queue position is considered. Once all $end$ node inputs can be fulfilled, $end$ is connected to the graph, any dangling nodes are removed, and $G$ is returned. In summary, by using this algorithm the structure of the resulting graph changes depending on the service ordering within the queue provided as input.
+ As shown in Algorithm \ref{graph_building}, the values initially required are the composition task inputs ($I$), task outputs ($O$), and a $queue$ of services as its input; this leads to the creation of a composition graph $G$. We begin by assigning $I$ as the set of outputs produced by the graph's $start$ node, and $O$ as the set of input nodes required by the graph's $end$ node. Then, $start$ is added to the graph $G$, its outputs are added to a set that records all available outputs from the nodes currently in the graph. After this setup stage, the following steps are repeated until the available outputs can be used to fulfil all of the inputs of $end$: the next node of the queue is retrieved as a candidate; if all of its inputs can be fulfilled, the candidate is connected to the graph, its outputs are added to the set of available outputs, and it is removed from the queue; otherwise, the candidate in the next queue position is considered. Once all $end$ node inputs can be fulfilled, $end$ is connected to the graph, any dangling nodes are removed, and $G$ is returned. In summary, by using this algorithm the structure of the resulting graph changes depending on the service ordering within the queue provided as input.
 
 \subsection{Fitness Calculation (Step 5)}
 
@@ -259,7 +241,7 @@ normalise(value) =
 
 A variation to the PSO-based approach proposed in the previous section, which considers the use of service layers, was also developed. As shown in Algorithm \ref{novelLayeredSteps}, this approach follows the same steps used in the non-layered method, with three fundamental differences: firstly, the mapping of candidates to an index in the particle's position vector includes the division of the services that can potentially be included into a composition for the given task into layers; secondly, the the decoding and evaluation of the solution represented by a particle are performed in a single step by using a new algorithm that does not require the creation of a graph; finally, a graph representing the global best solution is created after the optimisation process has finished running. Each of these steps is explained in the subsections below.
 
-\begin{algorithm}[h]
+\begin{algorithm}[!htb]
  \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \let\oldnl\nl% Store \nl in \oldnl
@@ -290,9 +272,9 @@ A variation to the PSO-based approach proposed in the previous section, which co
 
 \subsection{Layer Identification and Particle Mapping (Step 1)}
 
-The unique feature of the PSO approach proposed in this section is that it identifies the \textit{composition layer} to which a service belongs. Before the optimisation process begins, the service repository is run through a discovery process \cite{wang2013genetic} that identifies the services that could be possibly used in the composition. As shown in Algorithm \ref{discovery}, this filtering process requires the set of inputs ($I$) and the set of outputs ($O$) from the overall composition task, in addition to the service repository ($R$); given these inputs, it produces a list of candidate service layers that are relevant to the composition ($L$). The algorithm keeps track of all available inputs so far ($C_{search}$), and uses them to discover additional layers: if a previously undiscovered service has all of its inputs satisfied by $C_{search}$, then it is added to the current layer and its outputs are added as available inputs in $C_{search}$. The discovery continues until no additional layers are found, and the final step verifies whether the desired composite output $O$ can in fact be achieved using the services in the repository. Once the composition layers are identified, the particle mapping takes place. As shown in in Figure \ref{layeredMapping}, each service layer is mapped to contiguous particle indices, effectively segmenting particles according to the layers. This segmentation facilitates the solution decoding process discussed in the following subsection.
+The unique feature of the PSO approach proposed in this section is that it identifies the \textit{composition layer} to which a service belongs. Before the optimisation process begins, the service repository is run through a discovery process \cite{wang2013genetic} that identifies the services that could be possibly used in the composition. As shown in Algorithm \ref{discovery}, this filtering process requires the set of inputs ($I$) and the set of outputs ($O$) from the overall composition task, in addition to the service repository ($R$); given these inputs, it produces a list of candidate service layers that are relevant to the composition ($L$). The algorithm keeps track of all available outputs so far, and uses them to discover additional layers: if a previously undiscovered service has all of its inputs satisfied by the set of available outputs, then it is added to the current layer and its outputs are added to the set of available outputs. The discovery continues until no additional layers are found, and the final step verifies whether the desired composite output $O$ can in fact be achieved using the services in the repository. Once the composition layers are identified, the particle mapping takes place. As shown in in Figure \ref{layeredMapping}, each service layer is mapped to contiguous particle indices, effectively segmenting particles according to the layers. This segmentation facilitates the solution decoding process discussed in the following subsection.
 
-\begin{algorithm}
+\begin{algorithm}[!htb]
 \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \LinesNumbered
@@ -300,17 +282,14 @@ The unique feature of the PSO approach proposed in this section is that it ident
  %\SetLine % For v3.9
  \Input{$I$, $O$, $R$}
  \Output{service layers $L$}
- $C_{search} \leftarrow I$\;
- $L \leftarrow \{\}$\;
- $i \leftarrow i$\;
- $S_{found} \leftarrow DiscoverService()$\;
- \While{$|S_{found}| > 0$}{
-  $L.add(S_{found},i)$\;
-  $i \leftarrow i + 1$\;
-  $C_{search} \leftarrow C_{search} \cup C_{output}$ of $S_{found}$\;
-  $S_{found} \leftarrow DiscoverService()$\;
-  }
-  \eIf{$C_{search} \supseteq O$}{
+ Initialise output set with $I$\;
+ Discover services satisfied by output set\;
+ \While{at least one service discovered}{
+ Add services as the next layer in $L$\;
+ Add the outputs of these services to the output set\;
+ Discover additional services satisfied by the updated output set\;
+ }
+  \eIf{Output set satisfies $O$}{
    \Return $L$\;
    }{
    Report no solution\;
@@ -334,7 +313,7 @@ The solution decoding step employed in the layered PSO approach is fundamentally
 The algorithm works by keeping track of all service inputs that need to be satisfied ($nextToSatisfy$), initialising it to contain all the inputs required by the end node. Then, the algorithm is executed from the last layer (layer $i = |L|$) towards the first layer (layer $i = 1$), each time performing the same series of steps. Firstly, all the inputs in $nextToSatisfy$ that correspond to services in the current layer are identified as $toSatisfy$. Then, all previous sorted layers (excluding the current layer $i$) are merged into a single service queue that is then used to fulfil the entries in $toSatisfy$. As each service is selected from the queue to satisfy a given input, its QoS values are added to the QoS totals and all of its inputs are placed in the $nextToSatisfy$ set. The $time$ aspect of QoS is calculated by keeping track of the longest total time required by the services in previously processed layers, and by updating this total time with each new service addition. It is important to note that if an input in $toSatisfy$ cannot be fulfilled by any of the services in the merged queue (i.e. $nextS = null$), this input will be fulfilled by the composition's given values. After all layers are satisfied, the fitness is calculated using the same fitness calculation approach as the previous PSO and the algorithm returns the result. 
 
 
-\begin{algorithm}
+\begin{algorithm}[!htb]
 \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \SetKwFunction{filterByLayer}{filterByLayer}\SetKwFunction{mergeLayers}{mergeLayers}\SetKwFunction{findHighestTime}{findHighestTime}
@@ -343,44 +322,19 @@ The algorithm works by keeping track of all service inputs that need to be satis
  \SetNlSty{}{}{:}
  \Input{$end$, sorted layers $L$}
  \Output{fitness $f$}
- $solution \leftarrow \{\}$\;
- $cost \leftarrow 0$\;
- $availability \leftarrow 1$\;
- $reliability \leftarrow 1$\;
- $nextToSatisfy \leftarrow \{\}$\;
- \ForAll{$inputs$ of $end$}{
-    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, end.time, |L|)\}$\;
- }
- $i \leftarrow |L|$\;
- \For{$i=|L|$ to $i=1$}{
-    $toSatisfy \leftarrow \filterByLayer(nextToSatisfy,i)$\;
-    $nextToSatisfy \leftarrow nextToSatisfy - toSatisfy$\;
-    $mergedL \leftarrow \mergeLayers(L,i)$\;
-    \While{$|toSatisfy| > 0$}{
-	$nextS \leftarrow mergedL.next()$\;
-	\eIf{$nextS = \eNull$}{
-	    $nextToSatisfy \leftarrow nextToSatisfy \cup toSatisfy$\;
-	    $toSatisfy \leftarrow \{\}$\;
-	}{
-	    $nLayer \leftarrow nextS.layer$\;
-	    $satisfied \leftarrow \getInputsSatisfied(toSatisfy,nextS)$\;
-	    \If{$|satisfied| > 0$}{
-		$solution \leftarrow solution \cup \{nextS\}$\;
-		$cost \leftarrow cost + nextS.QoS.time$\;
-		$availability \leftarrow availability \times nextS.QoS.availability$\;
-		$reliability \leftarrow reliability \times nextS.QoS.reliability$\;
-	    }
-	    $time \leftarrow nextS.QoS.time$\;
-	    $toSatisfy \leftarrow toSatisfy - satisfied$\;
-	    $highestTime \leftarrow \findHighestTime(satisfied)$\;
-	    \ForAll{$inputs$ of $nextS$}{
-		$nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, time + highestTime, nLayer)\}$\;
-	    }
-	}
+ Initialise variables to keep track of QoS: $cost=0, availability=1, reliability=1$\;
+ Set all inputs of $end$ as the next to satisfy, associating each input with time $0$ and layer $|L|+1$\;
+ \For{all sorted layers in L, from $end$ to first}{
+ 	Identify the inputs from next-to-satisfy set that correspond to services in this layer\;
+    \While{not all of these inputs have been satisfied}{
+	Find the next service from the previous layers with the highest weight\;
+	\If{service outputs satisfy at least one input}{
+		Update running QoS values with service QoS (add to running cost, multiply with running availability and reliability)\;
+		Add the inputs of service to the set of next inputs to satisfy, each associated with (service time + highest time from satisfied inputs) and current layer position\;
     }
  }
- $time \leftarrow \findHighestTime(nextToSatisfy)$\;
- $f \leftarrow \calculateFitness(cost,time,availability,reliability)$\;
+ Find the total composition time as the highest from the remaining set of next inputs to satisfy\;
+ Calculate fitness $f$ using total QoS values\;
  \Return $f$\;
 \caption{Algorithm for decoding solutions and calculating their fitness.}
 \label{solutionDecoding}
@@ -390,7 +344,7 @@ The algorithm works by keeping track of all service inputs that need to be satis
 
 As the decoding algorithm described in the previous subsection does not create a directed acyclic graph out of every candidate solution, at the end of the run it is necessary to build a solution graph out of the overall fittest particle by using Algorithm \ref{solutionBuilding}. This algorithm has a very similar structure to the decoding one, but instead of calculating QoS values it connects services from earlier layers whose outputs fulfil the inputs of services in later layers. As before, the algorithm goes through all composition layers, though in this case the final step is to connect the $start$ node to any service with inputs that are still unfulfilled. Finally, the composition graph $G$ is returned.
 
-\begin{algorithm}
+\begin{algorithm}[!htb]
 \setlength\hsize{0.9\linewidth}
  \SetKwInOut{Input}{Input}\SetKwInOut{Output}{Output}
  \SetKwFunction{filterByLayer}{filterByLayer}\SetKwFunction{mergeLayers}{mergeLayers}
@@ -399,38 +353,19 @@ As the decoding algorithm described in the previous subsection does not create a
  \SetNlSty{}{}{:}
  \Input{$start$, $end$, sorted layers $L$}
  \Output{final graph $G$}
- $G.nodes \leftarrow \{end\}$\;
- $G.edges \leftarrow \{\}$\;
- $nextToSatisfy \leftarrow \{\}$\;
- \ForAll{$inputs$ of $end$}{
-    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, end, |L|)\}$\;
- }
- $i \leftarrow |L|$\;
- \For{$i=|L|$ to $i=1$}{
-    $toSatisfy \leftarrow \filterByLayer(nextToSatisfy,i)$\;
-    $nextToSatisfy \leftarrow nextToSatisfy - toSatisfy$\;
-    $mergedL \leftarrow \mergeLayers(L,i)$\;
-    \While{$|toSatisfy| > 0$}{
-	$nextS \leftarrow mergedL.next()$\;
-	\eIf{$nextS = \eNull$}{
-	    $nextToSatisfy \leftarrow nextToSatisfy \cup toSatisfy$\;
-	    $toSatisfy \leftarrow \{\}$\;
-	}{
-	    $nLayer \leftarrow nextS.layer$\;
-	    $satisfied \leftarrow \getInputsSatisfied(toSatisfy,nextS)$\;
-	    \If{$|satisfied| > 0$}{
-		$G.nodes \leftarrow G.nodes \cup \{nextS\}$\;
-		$G.edges \leftarrow G.edges \cup \createEdges(nextS, satisfied)$\;
-		$toSatisfy \leftarrow toSatisfy - satisfied$\;
-		\ForAll{$inputs$ of $nextS$}{
-		    $nextToSatisfy \leftarrow nextToSatisfy \cup \{(input, nextS, nLayer)\}$\;
-		}
-	    }
-	}
-    }
- }
- $G.nodes \leftarrow G.nodes \cup \{start\}$\;
- $G.edges \leftarrow G.edges \cup \createEdges(start,nextToSatisfy)$\;
+ Create graph $G$ containing the end node\;
+ Set all inputs of $end$ as the next to satisfy, associating each input with the $end$ node and layer $|L|+1$\;
+ \ForAll{sorted layers in $L$, from $end$ to first}{
+ 	Identify the inputs from next-to-satisfy set that correspond to services in this layer\;
+    \While{not all of these inputs have been satisfied}{
+    	Find the next service from the previous layer with the highest weight\;
+	    \If{the outputs of this service satisfy at least one of the inputs for this layer}{
+			Add service node to graph\;
+			Add edges connecting this service node to the nodes whose inputs it satisfies\;
+			Add the inputs of the service node to the set of next inputs to satisfy, each associated with the service node and current layer position\;
+ }}}
+ Add $start$ node to graph\;
+ Add edges connecting $start$ node the associated nodes of all remaining inputs in the next-to-satisfy set\;
  \Return $G$\;
 \caption{Algorithm for building final graph solution.}
 \label{solutionBuilding}
