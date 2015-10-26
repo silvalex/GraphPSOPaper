@@ -331,8 +331,7 @@ The algorithm works by keeping track of all service inputs that need to be satis
 	\If{service outputs satisfy at least one input}{
 		Update running QoS values with service QoS (add to running cost, multiply with running availability and reliability)\;
 		Add the inputs of service to the set of next inputs to satisfy, each associated with (service time + highest time from satisfied inputs) and current layer position\;
-    }
- }
+ }}}
  Find the total composition time as the highest from the remaining set of next inputs to satisfy\;
  Calculate fitness $f$ using total QoS values\;
  \Return $f$\;
